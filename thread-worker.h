@@ -1,7 +1,7 @@
 // File:	worker_t.h
 
-// List all group member's name:
-// username of iLab:
+// List all group member's name: Yusuf Aminu, Kuthab Ibrahim
+// username of iLab:butter
 // iLab Server:
 
 #ifndef WORKER_T_H
@@ -11,8 +11,17 @@
 
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_WORKERS macro */
 #define USE_WORKERS 1
-
+#define READY 0
+#define SCHEDULED 1
+#define BLOCKED 2
+#define TERMINATED 3
+#define STACK_SIZE (64 * 1024)
+#define QUANTUM 10 // milliseconds
 /* include lib header files that you need here: */
+#include <ucontext.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -22,21 +31,31 @@
 typedef uint worker_t;
 
 typedef struct TCB {
-	/* add important states in a thread control block */
-	// thread Id
-	// thread status
-	// thread context
-	// thread stack
-	// thread priority
-	// And more ...
 
-	// YOUR CODE HERE
-} tcb; 
+	worker_t Id;
+	int status;
+	ucontext_t context;
+	void* stack;
+	void* return_val;
+	struct TCB* joiner;   // thread blocked in worker_join on this one
+	struct TCB* next;     // link for queues
+	void *(*function)(void*); // start routine, called by thread_start
+	void* arg;
+
+	// --- Part 2 (scheduler) fields go here: priority/level, elapsed quanta, timestamps ---
+} tcb;
+
+typedef struct queue {
+	tcb *head;
+	tcb *tail;
+} queue;
 
 /* mutex struct definition */
 typedef struct worker_mutex_t {
 	/* add something here */
-
+	int lock_flag;
+	tcb *owner;
+	queue waiters;
 	// YOUR CODE HERE
 } worker_mutex_t;
 
