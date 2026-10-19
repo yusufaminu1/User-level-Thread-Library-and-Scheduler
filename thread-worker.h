@@ -17,10 +17,15 @@
 #define TERMINATED 3
 #define STACK_SIZE (64 * 1024)
 #define QUANTUM 10 // milliseconds
+#define MLFQ_LEVELS 4 // MLFQ run queues; level 0 is the highest priority, each level down doubles the time slice
+#ifndef MLFQ_S
+#define MLFQ_S (100 * QUANTUM) // MLFQ Rule 5: every S milliseconds, all threads move back to the top queue
+#endif
 /* include lib header files that you need here: */
 #include <ucontext.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <time.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -42,7 +47,14 @@ typedef struct TCB {
 	void *(*function)(void*); // start routine, called by thread_start
 	void* arg;
 
-	// --- Part 2 (scheduler) fields go here: priority/level, elapsed quanta, timestamps ---
+	int elapsed;          // PSJF: quanta this thread has run so far
+	int priority;         // MLFQ: run queue level, 0 = highest
+	long level_used;      // MLFQ: CPU time (us) used at the current level, for Rule 4's allotment
+	long cntx_switches;   // times this thread was switched onto the CPU
+	struct timespec arrival; // when it was first put into a runqueue
+	int has_run;          // set once it has been scheduled for the first time
+	double resp_time;     // ms from arrival until first scheduled
+	double turn_time;     // ms from arrival until it finished
 } tcb;
 
 typedef struct queue {
