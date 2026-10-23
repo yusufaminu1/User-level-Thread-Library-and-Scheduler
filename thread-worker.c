@@ -1,8 +1,8 @@
 // File:	thread-worker.c
 
-// List all group member's name: Yusuf Aminu, Kuthab Ibrahim
+// List all group member's name: Yusuf Aminu(yta12), Kuthab Ibrahim(ki91)
 // username of iLab: butter
-// iLab Server:
+// iLab Server: butter.cs.rutgers.edu
 
 #include "thread-worker.h"
 
@@ -15,21 +15,21 @@ double avg_resp_time=0;
 
 // INITAILIZE ALL YOUR OTHER VARIABLES HERE
 // YOUR CODE HERE
-static queue runqueue;            // PSJF runqueue
-static queue mlfq[MLFQ_LEVELS];   // MLFQ runqueues, mlfq[0] is the highest priority
+static queue runqueue;            
+static queue mlfq[MLFQ_LEVELS];   
 static tcb *current;
 static tcb *main_thread;
 static ucontext_t scheduler_ctx;
 static worker_t next_id;
 static int intialized = 0;
-static tcb **all_threads;   // all_threads[id] -> TCB, so join can find a thread by id
+static tcb **all_threads;   
 static int all_threads_cap;
-static long slice_start;    // process CPU time (us) when the running thread was dispatched
-static long last_boost;     // process CPU time (us) of the last MLFQ priority boost
-static int boost_cut;       // the running thread's slice was shortened so the next boost happens on time
-static long finished_threads;   // worker threads that have exited, for the running averages
-static double total_turn_time;  // ms
-static double total_resp_time;  // ms
+static long slice_start;    
+static long last_boost;     
+static int boost_cut;       
+static long finished_threads;   
+static double total_turn_time; 
+static double total_resp_time;  
 static void schedule();
 static tcb *sched_psjf();
 static tcb *sched_mlfq();
@@ -88,7 +88,7 @@ static tcb *dequeue(queue *q){
 	return old_head;
 }
 
-// unlink t from q; prev is the node before t, or NULL if t is the head
+
 static void queue_remove(queue *q, tcb *prev, tcb *t){
 	if(prev == NULL){
 		q->head = t->next;
@@ -101,7 +101,7 @@ static void queue_remove(queue *q, tcb *prev, tcb *t){
 	t->next = NULL;
 }
 
-// every way into a runqueue goes through here; under MLFQ a thread joins the tail of its level's queue
+
 static void make_ready(tcb *t){
 	t->status = READY;
 #ifndef MLFQ
@@ -116,14 +116,12 @@ static double ms_between(const struct timespec *start, const struct timespec *en
 	return (end->tv_sec - start->tv_sec) * 1000.0 + (end->tv_nsec - start->tv_nsec) / 1000000.0;
 }
 
-// process CPU time in microseconds: the clock ITIMER_PROF counts, so slices, allotments and S all share it
 static long cpu_time_us(){
 	struct timespec ts;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
 	return ts.tv_sec * 1000000L + ts.tv_nsec / 1000;
 }
 
-// time slice (us) of the queue t is in: QUANTUM under PSJF; under MLFQ each level down doubles it
 static long time_slice(tcb *t){
 #ifndef MLFQ
 	return (long)(QUANTUM * 1000L);
@@ -132,21 +130,17 @@ static long time_slice(tcb *t){
 #endif
 }
 
-// arm a one-shot timer for the thread about to run
 static void start_slice(tcb *t){
 	long usec = time_slice(t);
 #ifdef MLFQ
 	slice_start = cpu_time_us();
-	usec -= t->level_used;   // Rule 4: only what is left of its allotment at this level
-	// Rule 5: if the next boost is due sooner, stop there so the boost happens on time
+	usec -= t->level_used;   
 	long until_boost = last_boost + (long)(MLFQ_S * 1000L) - slice_start;
 	boost_cut = until_boost < usec;
 	if(boost_cut){
 		usec = until_boost > 0 ? until_boost : 1;
 	}
 #endif
-	// stop the previous slice's timer and drop a tick it may have left pending while SIGPROF
-	// was blocked, so it can't preempt this thread the moment it starts
 	struct itimerval timer;
 	memset(&timer, 0, sizeof(timer));
 	setitimer(ITIMER_PROF, &timer, NULL);
@@ -160,7 +154,6 @@ static void start_slice(tcb *t){
 		sigwait(&prof, &sig);
 	}
 
-	// one-shot: the scheduler re-arms it every time it dispatches a thread
 	timer.it_value.tv_sec = usec / 1000000;
 	timer.it_value.tv_usec = usec % 1000000;
 	setitimer(ITIMER_PROF, &timer, NULL);
@@ -173,7 +166,6 @@ static void timer_handler(int signum){
 
 
 static void init_library(){
-	// scheduler context with its own stack
 	getcontext(&scheduler_ctx);
 	scheduler_ctx.uc_stack.ss_sp = malloc(STACK_SIZE);
 	scheduler_ctx.uc_stack.ss_size = STACK_SIZE;
@@ -188,7 +180,7 @@ static void init_library(){
 	main_thread->Id = next_id++;
 	main_thread->status = SCHEDULED;
 	main_thread->stack = NULL;
-	main_thread->has_run = 1;   // main is not a worker thread, so it stays out of the response/turnaround stats
+	main_thread->has_run = 1;  
 	current = main_thread;
 	register_thread(main_thread);
 
@@ -199,7 +191,6 @@ static void init_library(){
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGPROF, &sa, NULL);
 
-	// main is already running, so its first time slice starts now
 #ifdef MLFQ
 	last_boost = cpu_time_us();
 #endif
@@ -227,7 +218,7 @@ int worker_create(worker_t * thread, pthread_attr_t * attr,
 	*thread = t->Id;
 	t->function = function;
 	t->arg = arg;
-	t->priority = 0;   // MLFQ Rule 3: a new thread starts in the topmost queue
+	t->priority = 0;  
 
 	t->stack = malloc(STACK_SIZE);
 	getcontext(&t->context);
@@ -310,7 +301,7 @@ int worker_join(worker_t thread, void **value_ptr) {
 	return 0;
 };
 
-
+/* initialize the mutex lock */
 int worker_mutex_init(worker_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr) {
 	mutex->lock_flag = 0;
@@ -320,7 +311,7 @@ int worker_mutex_init(worker_mutex_t *mutex,
 	return 0;
 };
 
-
+/* aquire the mutex lock */
 int worker_mutex_lock(worker_mutex_t *mutex) {
 	block_timer();
 
@@ -364,9 +355,6 @@ int worker_mutex_destroy(worker_mutex_t *mutex) {
 
 /* scheduler: runs on its own context with SIGPROF blocked */
 static void schedule() {
-	// the timer interrupt, yield, join, mutex lock and exit all switch to here;
-	// current->status says why: SCHEDULED = preempted by the timer, READY = yielded,
-	// BLOCKED = waiting on join/mutex, TERMINATED = exited
 	while(1){
 		tcb *prev = current;
 		tcb *next;
@@ -380,16 +368,13 @@ static void schedule() {
 #endif
 
 		if(next == NULL){
-			// nothing can run: every thread (main included) has exited, or the program deadlocked
 			exit(main_thread->status == TERMINATED ? 0 : 1);
 		}
 
-		// count a context switch only when the CPU goes to a different thread
 		if(next != prev){
 			tot_cntx_switches++;
 			next->cntx_switches++;
 		}
-		// response time: from entering the runqueue until first being scheduled
 		if(!next->has_run){
 			struct timespec now;
 			clock_gettime(CLOCK_MONOTONIC, &now);
@@ -406,17 +391,15 @@ static void schedule() {
 
 /* Pre-emptive Shortest Job First (POLICY_PSJF) scheduling algorithm */
 static tcb *sched_psjf() {
-	// a job's length is unknown, so it is estimated by how many quanta it has run so far;
-	// still SCHEDULED here means the timer went off, so it used up a whole quantum
 	if(current->status == SCHEDULED){
 		current->elapsed++;
 	}
-	// a runnable thread goes to the tail of the runqueue
+	
 	if(current->status == SCHEDULED || current->status == READY){
 		make_ready(current);
 	}
 
-	// run the thread with the minimum elapsed count; scanning from the head, ties go to whoever has waited longest
+	
 	tcb *best = NULL;
 	tcb *best_prev = NULL;
 	tcb *prev = NULL;
@@ -434,7 +417,7 @@ static tcb *sched_psjf() {
 }
 
 
-// MLFQ Rule 5: move every thread in the system to the topmost queue
+
 static void priority_boost(){
 	for(worker_t id = 0; id < next_id; id++){
 		tcb *t = all_threads[id];
@@ -463,14 +446,13 @@ static void priority_boost(){
 static tcb *sched_mlfq() {
 	long now = cpu_time_us();
 
-	// Rule 4: once a thread uses up its time allotment at a level (one time slice of that level),
-	// it moves down one queue, no matter how many times it gave up the CPU along the way
+	
 	if(current->status != TERMINATED){
 		long slice = time_slice(current);
 		if(current->status == SCHEDULED && !boost_cut){
-			current->level_used = slice;               // the timer went off: allotment used up
+			current->level_used = slice;               
 		}else{
-			current->level_used += now - slice_start;  // gave up the CPU early, or was stopped for the boost
+			current->level_used += now - slice_start;
 		}
 		if(current->level_used >= slice){
 			if(current->priority < MLFQ_LEVELS - 1){
@@ -483,13 +465,11 @@ static tcb *sched_mlfq() {
 		make_ready(current);
 	}
 
-	// Rule 5: after every period S, move all the threads in the system to the topmost queue
 	if(now - last_boost >= (long)(MLFQ_S * 1000L)){
 		priority_boost();
 		last_boost = now;
 	}
 
-	// Rules 1 and 2: run a thread from the highest non-empty level; threads within a level take turns (round robin)
 	for(int level = 0; level < MLFQ_LEVELS; level++){
 		if(mlfq[level].head != NULL){
 			return dequeue(&mlfq[level]);

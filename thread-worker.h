@@ -1,8 +1,8 @@
 // File:	worker_t.h
 
-// List all group member's name: Yusuf Aminu, Kuthab Ibrahim
+// List all group member's name: Yusuf Aminu(yta12), Kuthab Ibrahim(ki91)
 // username of iLab:butter
-// iLab Server:
+// iLab Server:butter.cs.rutgers.edu
 
 #ifndef WORKER_T_H
 #define WORKER_T_H
@@ -16,8 +16,8 @@
 #define BLOCKED 2
 #define TERMINATED 3
 #define STACK_SIZE (64 * 1024)
-#define QUANTUM 10 // milliseconds
-#define MLFQ_LEVELS 4 // MLFQ run queues; level 0 is the highest priority, each level down doubles the time slice
+#define QUANTUM 10 
+#define MLFQ_LEVELS 4 
 #ifndef MLFQ_S
 #define MLFQ_S (100 * QUANTUM) // MLFQ Rule 5: every S milliseconds, all threads move back to the top queue
 #endif
@@ -42,19 +42,19 @@ typedef struct TCB {
 	ucontext_t context;
 	void* stack;
 	void* return_val;
-	struct TCB* joiner;   // thread blocked in worker_join on this one
-	struct TCB* next;     // link for queues
-	void *(*function)(void*); // start routine, called by thread_start
+	struct TCB* joiner;
+	struct TCB* next;
+	void *(*function)(void*);
 	void* arg;
 
-	int elapsed;          // PSJF: quanta this thread has run so far
-	int priority;         // MLFQ: run queue level, 0 = highest
-	long level_used;      // MLFQ: CPU time (us) used at the current level, for Rule 4's allotment
-	long cntx_switches;   // times this thread was switched onto the CPU
-	struct timespec arrival; // when it was first put into a runqueue
-	int has_run;          // set once it has been scheduled for the first time
-	double resp_time;     // ms from arrival until first scheduled
-	double turn_time;     // ms from arrival until it finished
+	int elapsed;
+	int priority;
+	long level_used;
+	long cntx_switches;
+	struct timespec arrival;
+	int has_run;
+	double resp_time;
+	double turn_time;
 } tcb;
 
 typedef struct queue {
