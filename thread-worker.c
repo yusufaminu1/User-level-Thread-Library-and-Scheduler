@@ -54,7 +54,7 @@ static void register_thread(tcb *t){
 	if(t->Id >= all_threads_cap){
 		int new_cap = all_threads_cap ? all_threads_cap * 2 : 64;
 		while(new_cap <= t->Id){
-			new_cap *= 2;
+			new_cap *=2;
 		}
 		all_threads = realloc(all_threads, new_cap * sizeof(tcb *));
 		memset(all_threads + all_threads_cap, 0, (new_cap - all_threads_cap) * sizeof(tcb *));
@@ -66,11 +66,11 @@ static void register_thread(tcb *t){
 static void enqueue(queue *q, tcb *t){
 	t->next = NULL;
 	if(q->tail == NULL){
-		q->head = t;
+		q->head =t;
 		q->tail = t;
 	}else{
 		q->tail->next = t;
-		q->tail = t;
+		q->tail =t;
 	}
 	
 	
@@ -79,10 +79,10 @@ static tcb *dequeue(queue *q){
 	if(q->head == NULL){
 		return NULL;
 	}
-	tcb *old_head = q->head;
+	tcb *old_head =q->head;
 	q->head = q->head->next;
 	if(q->head == NULL){
-		q->tail = NULL;
+		q->tail =NULL;
 	}
 	old_head->next = NULL;
 	return old_head;
@@ -91,12 +91,12 @@ static tcb *dequeue(queue *q){
 
 static void queue_remove(queue *q, tcb *prev, tcb *t){
 	if(prev == NULL){
-		q->head = t->next;
+		q->head =t->next;
 	}else{
-		prev->next = t->next;
+		prev->next =t->next;
 	}
-	if(q->tail == t){
-		q->tail = prev;
+	if(q->tail ==t){
+		q->tail =prev;
 	}
 	t->next = NULL;
 }
@@ -113,18 +113,18 @@ static void make_ready(tcb *t){
 
 
 static double ms_between(const struct timespec *start, const struct timespec *end){
-	return (end->tv_sec - start->tv_sec) * 1000.0 + (end->tv_nsec - start->tv_nsec) / 1000000.0;
+	return (end->tv_sec - start->tv_sec) * 1000.0 + (end->tv_nsec - start->tv_nsec) /1000000.0;
 }
 
 static long cpu_time_us(){
 	struct timespec ts;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
-	return ts.tv_sec * 1000000L + ts.tv_nsec / 1000;
+	return ts.tv_sec * 1000000L + ts.tv_nsec /1000;
 }
 
 static long time_slice(tcb *t){
 #ifndef MLFQ
-	return (long)(QUANTUM * 1000L);
+	return (long)(QUANTUM *1000L);
 #else
 	return (long)(QUANTUM * 1000L) << t->priority;
 #endif
@@ -222,12 +222,12 @@ int worker_create(worker_t * thread, pthread_attr_t * attr,
 
 	t->stack = malloc(STACK_SIZE);
 	getcontext(&t->context);
-	t->context.uc_stack.ss_sp = t->stack;
-	t->context.uc_stack.ss_size = STACK_SIZE;
-	t->context.uc_stack.ss_flags = 0;
-	t->context.uc_link = NULL;
+	t->context.uc_stack.ss_sp =t->stack;
+	t->context.uc_stack.ss_size =STACK_SIZE;
+	t->context.uc_stack.ss_flags =0;
+	t->context.uc_link =NULL;
 	sigdelset(&t->context.uc_sigmask, SIGPROF);
-	makecontext(&t->context, thread_start, 0);
+	makecontext(&t->context,thread_start, 0);
 
 	register_thread(t);
 	clock_gettime(CLOCK_MONOTONIC, &t->arrival);
@@ -249,7 +249,7 @@ int worker_yield() {
 /* terminate a thread */
 void worker_exit(void *value_ptr) {
 	block_timer();
-	current->return_val = value_ptr;
+	current->return_val =value_ptr;
 	current->status = TERMINATED;
 
 	// turnaround: from first entering the runqueue until now; fold this thread into the running averages
@@ -258,10 +258,10 @@ void worker_exit(void *value_ptr) {
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		current->turn_time = ms_between(&current->arrival, &now);
 		finished_threads++;
-		total_turn_time += current->turn_time;
-		total_resp_time += current->resp_time;
-		avg_turn_time = total_turn_time / finished_threads;
-		avg_resp_time = total_resp_time / finished_threads;
+		total_turn_time +=current->turn_time;
+		total_resp_time +=current->resp_time;
+		avg_turn_time =total_turn_time /finished_threads;
+		avg_resp_time = total_resp_time /finished_threads;
 	}
 
 	
@@ -291,7 +291,7 @@ int worker_join(worker_t thread, void **value_ptr) {
 	}
 
 	if(value_ptr != NULL){
-		*value_ptr = target->return_val;
+		*value_ptr =target->return_val;
 	}
 	all_threads[thread] = NULL;
 	free(target->stack);
@@ -305,9 +305,9 @@ int worker_join(worker_t thread, void **value_ptr) {
 int worker_mutex_init(worker_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr) {
 	mutex->lock_flag = 0;
-	mutex->owner = NULL;
+	mutex->owner =NULL;
 	mutex->waiters.head = NULL;
-	mutex->waiters.tail = NULL;
+	mutex->waiters.tail =NULL;
 	return 0;
 };
 
@@ -318,9 +318,9 @@ int worker_mutex_lock(worker_mutex_t *mutex) {
 	while(__sync_lock_test_and_set(&mutex->lock_flag, 1)){
 		current->status = BLOCKED;
 		enqueue(&mutex->waiters, current);
-		swapcontext(&current->context, &scheduler_ctx);
+		swapcontext(&current->context,&scheduler_ctx);
 	}
-	mutex->owner = current;
+	mutex->owner =current;
 	unblock_timer();
 	return 0;
 };
@@ -328,7 +328,7 @@ int worker_mutex_lock(worker_mutex_t *mutex) {
 /* release the mutex lock */
 int worker_mutex_unlock(worker_mutex_t *mutex) {
 	block_timer();
-	mutex->owner = NULL;
+	mutex->owner =NULL;
 	__sync_lock_release(&mutex->lock_flag);
 
 	
@@ -347,16 +347,16 @@ int worker_mutex_destroy(worker_mutex_t *mutex) {
 	if(mutex->lock_flag){
 		return -1;
 	}
-	mutex->owner = NULL;
+	mutex->owner =NULL;
 	mutex->waiters.head = NULL;
-	mutex->waiters.tail = NULL;
+	mutex->waiters.tail =NULL;
 	return 0;
 };
 
 /* scheduler: runs on its own context with SIGPROF blocked */
 static void schedule() {
 	while(1){
-		tcb *prev = current;
+		tcb *prev =current;
 		tcb *next;
 
 #ifndef MLFQ
@@ -368,17 +368,17 @@ static void schedule() {
 #endif
 
 		if(next == NULL){
-			exit(main_thread->status == TERMINATED ? 0 : 1);
+			exit(main_thread->status ==TERMINATED ? 0 : 1);
 		}
 
-		if(next != prev){
+		if(next !=prev){
 			tot_cntx_switches++;
 			next->cntx_switches++;
 		}
 		if(!next->has_run){
 			struct timespec now;
 			clock_gettime(CLOCK_MONOTONIC, &now);
-			next->resp_time = ms_between(&next->arrival, &now);
+			next->resp_time =ms_between(&next->arrival, &now);
 			next->has_run = 1;
 		}
 
@@ -391,7 +391,7 @@ static void schedule() {
 
 /* Pre-emptive Shortest Job First (POLICY_PSJF) scheduling algorithm */
 static tcb *sched_psjf() {
-	if(current->status == SCHEDULED){
+	if(current->status ==SCHEDULED){
 		current->elapsed++;
 	}
 	
@@ -400,9 +400,9 @@ static tcb *sched_psjf() {
 	}
 
 	
-	tcb *best = NULL;
-	tcb *best_prev = NULL;
-	tcb *prev = NULL;
+	tcb *best =NULL;
+	tcb *best_prev =NULL;
+	tcb *prev =NULL;
 	for(tcb *t = runqueue.head; t != NULL; t = t->next){
 		if(best == NULL || t->elapsed < best->elapsed){
 			best = t;
@@ -411,7 +411,7 @@ static tcb *sched_psjf() {
 		prev = t;
 	}
 	if(best != NULL){
-		queue_remove(&runqueue, best_prev, best);
+		queue_remove(&runqueue,best_prev,best);
 	}
 	return best;
 }
@@ -419,22 +419,22 @@ static tcb *sched_psjf() {
 
 
 static void priority_boost(){
-	for(worker_t id = 0; id < next_id; id++){
+	for(worker_t id = 0; id <next_id; id++){
 		tcb *t = all_threads[id];
-		if(t != NULL && t->status != TERMINATED){
+		if(t != NULL && t->status !=TERMINATED){
 			t->priority = 0;
 			t->level_used = 0;
 		}
 	}
-	for(int level = 1; level < MLFQ_LEVELS; level++){
+	for(int level = 1; level <MLFQ_LEVELS; level++){
 		queue *q = &mlfq[level];
 		if(q->head == NULL){
 			continue;
 		}
-		if(mlfq[0].tail == NULL){
+		if(mlfq[0].tail ==NULL){
 			mlfq[0].head = q->head;
 		}else{
-			mlfq[0].tail->next = q->head;
+			mlfq[0].tail->next =q->head;
 		}
 		mlfq[0].tail = q->tail;
 		q->head = NULL;
@@ -449,29 +449,29 @@ static tcb *sched_mlfq() {
 	
 	if(current->status != TERMINATED){
 		long slice = time_slice(current);
-		if(current->status == SCHEDULED && !boost_cut){
-			current->level_used = slice;               
+		if(current->status ==SCHEDULED && !boost_cut){
+			current->level_used =slice;               
 		}else{
-			current->level_used += now - slice_start;
+			current->level_used += now -slice_start;
 		}
-		if(current->level_used >= slice){
-			if(current->priority < MLFQ_LEVELS - 1){
+		if(current->level_used >=slice){
+			if(current->priority <MLFQ_LEVELS - 1){
 				current->priority++;
 			}
 			current->level_used = 0;
 		}
 	}
-	if(current->status == SCHEDULED || current->status == READY){
+	if(current->status == SCHEDULED || current->status ==READY){
 		make_ready(current);
 	}
 
-	if(now - last_boost >= (long)(MLFQ_S * 1000L)){
+	if(now - last_boost >= (long)(MLFQ_S *1000L)){
 		priority_boost();
 		last_boost = now;
 	}
 
-	for(int level = 0; level < MLFQ_LEVELS; level++){
-		if(mlfq[level].head != NULL){
+	for(int level = 0; level <MLFQ_LEVELS; level++){
+		if(mlfq[level].head !=NULL){
 			return dequeue(&mlfq[level]);
 		}
 	}
@@ -482,9 +482,9 @@ static tcb *sched_mlfq() {
 /* Function to print global statistics. Do not modify this function.*/
 void print_app_stats(void) {
 
-       fprintf(stderr, "Total context switches %ld \n", tot_cntx_switches);
-       fprintf(stderr, "Average turnaround time %lf \n", avg_turn_time);
-       fprintf(stderr, "Average response time  %lf \n", avg_resp_time);
+       fprintf(stderr, "Total context switches %ld \n",tot_cntx_switches);
+       fprintf(stderr, "Average turnaround time %lf \n",avg_turn_time);
+       fprintf(stderr, "Average response time  %lf \n",avg_resp_time);
 }
 
 
